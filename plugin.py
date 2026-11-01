@@ -515,6 +515,8 @@ class CharacterDisguisePlugin(MaiBotPlugin):
                                 new_part["data"] = text
                             else:
                                 new_part["data"] = {"text": text}
+                            if "text" in new_part:
+                                new_part["text"] = text
                             new_raw.append(new_part)
                             replaced = True
                         else:

@@ -58,8 +58,10 @@
 
 ```toml
 [plugin]
+name = "character_disguise"
+version = "1.0.1"
+config_version = "1.0.1"
 enabled = true           # 是否开启人类伪装计划
-config_version = "1.0.0"
 
 [scope]
 # 作用域控制：私聊与群聊独立开关

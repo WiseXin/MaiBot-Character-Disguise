@@ -12,8 +12,8 @@ class TestConfig(unittest.TestCase):
     def test_default_config(self):
         cfg = CharacterDisguiseConfig()
         self.assertTrue(cfg.plugin.enabled)
-        self.assertEqual(cfg.plugin.config_version, "1.0.0")
-        self.assertEqual(cfg.plugin.version, "1.0.0")
+        self.assertEqual(cfg.plugin.config_version, "1.0.1")
+        self.assertEqual(cfg.plugin.version, "1.0.1")
         self.assertEqual(cfg.plugin.name, "character_disguise")
         self.assertTrue(cfg.scope.enable_group)
         self.assertTrue(cfg.scope.enable_private)

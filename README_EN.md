@@ -56,8 +56,8 @@
 ```toml
 [plugin]
 name = "character_disguise"
-version = "1.0.0"
-config_version = "1.0.0"
+version = "1.0.1"
+config_version = "1.0.1"
 enabled = true
 
 [scope]
