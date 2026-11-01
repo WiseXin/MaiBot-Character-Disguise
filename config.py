@@ -183,6 +183,30 @@ class RulesSection(PluginConfigBase):
             "hint": "当模型输出 <silent> 或无话可说时，在发送前直接取消该消息，保持真实群友的潜水习惯",
         },
     )
+    master_users: List[str] = Field(
+        default=["489618891"],
+        description="主人 QQ 列表，此列表内的账号发送任何消息均不予拦截",
+        json_schema_extra={
+            "label": "主人账号白名单",
+            "hint": "主人 QQ 列表（默认 489618891），主人的指令和任何发言绝不受限制",
+        },
+    )
+    filter_group_bot_noise: bool = Field(
+        default=True,
+        description="是否屏蔽群聊中普通群友发送的机器人指令、系统报错刷屏与代码注入",
+        json_schema_extra={
+            "label": "过滤群友机器人垃圾消息",
+            "hint": "开启后，群友发送的 /指令、机器人系统报错刷屏、SQL注入代码将被直接屏蔽不进模型，主人不受影响",
+        },
+    )
+    block_model_safety_errors: bool = Field(
+        default=True,
+        description="是否在出站端拦截大模型安全报错（如 Google Policy 提示）",
+        json_schema_extra={
+            "label": "拦截大模型安全报错",
+            "hint": "当模型因群友话题敏感触发 Google/平台安全策略返回英文报错时，静默拦截不发到聊天中",
+        },
+    )
 
 
 class SimulationSection(PluginConfigBase):

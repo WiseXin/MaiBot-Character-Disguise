@@ -215,6 +215,36 @@ class CharacterDisguisePlugin(MaiBotPlugin):
                     "updated_at": time.time(),
                 }
                 self.debug(f"[人类伪装计划] 捕获会话: sid={sid} type={chat_type} group={group_id} user={user_id}")
+
+                # 检查群聊垃圾过滤：仅对群聊中的普通群友生效，主人绝不受限
+                cfg = self._config()
+                if cfg.plugin.enabled and chat_type == "group" and cfg.rules.filter_group_bot_noise:
+                    text_content = str(message.get("processed_plain_text", "") or "")
+                    if not text_content:
+                        raw_msg = message.get("raw_message")
+                        if isinstance(raw_msg, list):
+                            parts = []
+                            for p in raw_msg:
+                                if isinstance(p, dict) and p.get("type") == "text":
+                                    pd = p.get("data")
+                                    if isinstance(pd, dict):
+                                        parts.append(str(pd.get("text", "")))
+                                    elif isinstance(pd, str):
+                                        parts.append(pd)
+                            text_content = "".join(parts)
+
+                    is_blocked, reason = TextCleaner.is_toxic_or_bot_noise(
+                        text_content,
+                        user_id=user_id,
+                        master_users=cfg.rules.master_users,
+                    )
+                    if is_blocked:
+                        nickname = str(user_info.get("user_nickname", "") or user_info.get("user_name", "") or "")
+                        self.info(
+                            f"[人类伪装计划] 🛡️ 静默拦截群友({user_id}|{nickname})的指令/机器人垃圾消息: "
+                            f"'{text_content[:60]}' (原因: {reason})，不予入库与送入模型"
+                        )
+                        return {"action": "abort"}
         return {"action": "continue"}
 
     # =========================================================================
@@ -457,6 +487,13 @@ class CharacterDisguisePlugin(MaiBotPlugin):
         # 核心防护：如果不含任何 text 段且无有效纯文本（纯图片、纯表情、语音、合并转发、戳一戳等），直接放行
         if not has_text_segment and not text.strip():
             return {"action": "continue"}
+
+        # 0. 上游大模型安全策略 / 敏感词拦截报错检查：静默拦截掐死，避免在聊天中暴露
+        if cfg.rules.block_model_safety_errors and TextCleaner.is_model_safety_error(text):
+            self.warning(
+                f"[人类伪装计划] 🛑 捕获到模型生成的平台安全/敏感词报错: '{text[:80]}'，已静默拦截掐死，避免在群聊中暴露！"
+            )
+            return {"action": "abort"}
 
         # 1. 沉默潜水检查：仅在存在文本且包含显式沉默标记时，才在物理发出前 abort
         if cfg.rules.allow_silent_reaction and TextCleaner.is_silent(text):

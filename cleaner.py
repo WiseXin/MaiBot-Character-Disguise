@@ -40,6 +40,42 @@ class TextCleaner:
         ),
     ]
 
+    # 上游大模型安全策略 / 敏感词拦截报错
+    MODEL_SAFETY_ERROR_PATTERNS = [
+        re.compile(r"the prompt could not be submitted", re.IGNORECASE),
+        re.compile(r"prohibited use policy", re.IGNORECASE),
+        re.compile(r"contains sensitive words that violate", re.IGNORECASE),
+        re.compile(r"violate[s]? Google's", re.IGNORECASE),
+        re.compile(r"generative ai prohibited use", re.IGNORECASE),
+        re.compile(r"try rephrasing the prompt", re.IGNORECASE),
+        re.compile(r"safety policy", re.IGNORECASE),
+        re.compile(r"violate[s]? safety guidelines", re.IGNORECASE),
+    ]
+
+    # 机器人指令前缀（群友给机器人发指令时使用）
+    BOT_COMMAND_PREFIXES = ("/", "#", "$", "!", "！", "、")
+
+    # 机器人系统报错、状态打卡与刷屏套话
+    BOT_SPAM_PATTERNS = [
+        re.compile(r"权限不足以使用此指令"),
+        re.compile(r"管理命令仅管理员可用"),
+        re.compile(r"reset command requires admin permission", re.IGNORECASE),
+        re.compile(r"运行中\s*={4,}status={4,}", re.IGNORECASE),
+        re.compile(r"【.*?服务器机器人.*?状态报告.*?】"),
+        re.compile(r"已恢复出厂默认的.*?人设规则"),
+        re.compile(r"再发#napcat刷屏永久拉黑"),
+        re.compile(r"Cookie\s*有效\s*\(UID:"),
+    ]
+
+    # SQL 注入与代码漏洞攻击载荷
+    CODE_INJECTION_PATTERNS = [
+        re.compile(r"'\s*or\s*'1'\s*=\s*'1", re.IGNORECASE),
+        re.compile(r"'\s*or\s*1\s*=\s*1", re.IGNORECASE),
+        re.compile(r"--\s*$", re.MULTILINE),
+        re.compile(r"\bdrop\s+table\b", re.IGNORECASE),
+        re.compile(r"\bselect\s+.*\bfrom\b", re.IGNORECASE),
+    ]
+
     @classmethod
     def is_silent(cls, text: str) -> bool:
         """判断是否属于显式沉默/潜水意图（仅命中显式沉默标签才为 True，空文本不误判）"""
@@ -52,6 +88,57 @@ class TextCleaner:
             if pattern.search(s):
                 return True
         return False
+
+    @classmethod
+    def is_model_safety_error(cls, text: str) -> bool:
+        """检查文本是否属于大模型上游安全/敏感词拦截报错（如 Google Policy 提示）"""
+        if not text:
+            return False
+        for pat in cls.MODEL_SAFETY_ERROR_PATTERNS:
+            if pat.search(text):
+                return True
+        return False
+
+    @classmethod
+    def is_toxic_or_bot_noise(
+        cls,
+        text: str,
+        user_id: str,
+        master_users: List[str] | None = None,
+    ) -> Tuple[bool, str]:
+        """检查群消息是否属于群友发送的机器人指令、垃圾刷屏或代码注入
+
+        Returns:
+            (is_blocked, reason)
+        """
+        # 1. 主人白名单豁免：主人无论发什么都不拦截
+        master_list = [str(u) for u in (master_users or ["489618891"])]
+        if str(user_id) in master_list:
+            return False, ""
+
+        if not text:
+            return False, ""
+
+        s = text.strip()
+
+        # 2. 机器人指令前缀检查
+        # 排除单个标点符号或纯省略号 "..."
+        if s.startswith(cls.BOT_COMMAND_PREFIXES):
+            return True, "bot_command"
+        if s.startswith(".") and len(s) > 1 and not s.startswith("..") and not s[1].isdigit():
+            return True, "bot_command"
+
+        # 3. 机器人系统报错/状态刷屏套话检查
+        for pat in cls.BOT_SPAM_PATTERNS:
+            if pat.search(s):
+                return True, "bot_spam"
+
+        # 4. 代码注入攻击与恶意载荷检查
+        for pat in cls.CODE_INJECTION_PATTERNS:
+            if pat.search(s):
+                return True, "code_injection"
+
+        return False, ""
 
     @classmethod
     def strip_markdown(cls, text: str) -> str:

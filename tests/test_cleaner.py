@@ -91,6 +91,68 @@ class TestTextCleaner(unittest.TestCase):
         self.assertEqual(cleaned, "")
         self.assertEqual(bubbles, [])
 
+    def test_model_safety_error_detection(self):
+        """测试上游大模型安全策略报错识别"""
+        err1 = "The prompt could not be submitted. The prompt contains sensitive words that violate Google's Prohibited Use policy."
+        err2 = "The prompt could not be submitted. The"
+        err3 = "Try rephrasing the prompt."
+        err4 = "violates safety policy and guidelines"
+        normal = "今天单机游戏真好玩，生化危机通关了"
+        self.assertTrue(TextCleaner.is_model_safety_error(err1))
+        self.assertTrue(TextCleaner.is_model_safety_error(err2))
+        self.assertTrue(TextCleaner.is_model_safety_error(err3))
+        self.assertTrue(TextCleaner.is_model_safety_error(err4))
+        self.assertFalse(TextCleaner.is_model_safety_error(normal))
+        self.assertFalse(TextCleaner.is_model_safety_error(""))
+
+    def test_toxic_and_bot_noise_filtering(self):
+        """测试机器人指令、系统报错刷屏与注入过滤（主人豁免）"""
+        master_users = ["489618891"]
+        master_id = "489618891"
+        other_user = "3148952613"
+
+        # 1. 主人发送指令：绝不拦截
+        is_blocked, _ = TextCleaner.is_toxic_or_bot_noise("/reset", master_id, master_users)
+        self.assertFalse(is_blocked)
+        is_blocked, _ = TextCleaner.is_toxic_or_bot_noise("/status", master_id, master_users)
+        self.assertFalse(is_blocked)
+
+        # 2. 群友发送机器人指令：精准拦截
+        is_blocked, reason = TextCleaner.is_toxic_or_bot_noise("/reset", other_user, master_users)
+        self.assertTrue(is_blocked)
+        self.assertEqual(reason, "bot_command")
+
+        is_blocked, reason = TextCleaner.is_toxic_or_bot_noise("#napcat 刷屏", other_user, master_users)
+        self.assertTrue(is_blocked)
+        self.assertEqual(reason, "bot_command")
+
+        is_blocked, reason = TextCleaner.is_toxic_or_bot_noise(".help", other_user, master_users)
+        self.assertTrue(is_blocked)
+        self.assertEqual(reason, "bot_command")
+
+        # 3. 群友正常日常聊天带有标点：放行不误杀
+        is_blocked, _ = TextCleaner.is_toxic_or_bot_noise("...无语了", other_user, master_users)
+        self.assertFalse(is_blocked)
+        is_blocked, _ = TextCleaner.is_toxic_or_bot_noise("今天天气真好", other_user, master_users)
+        self.assertFalse(is_blocked)
+
+        # 4. 机器人系统报错与状态刷屏：拦截
+        spam1 = "您(ID: 3148952613)的权限不足以使用此指令。通过 /sid 获取 ID 并请管理员添加。"
+        is_blocked, reason = TextCleaner.is_toxic_or_bot_noise(spam1, other_user, master_users)
+        self.assertTrue(is_blocked)
+        self.assertEqual(reason, "bot_spam")
+
+        spam2 = "Reset command requires admin permission in 群聊+会话隔离关闭 scenario"
+        is_blocked, reason = TextCleaner.is_toxic_or_bot_noise(spam2, other_user, master_users)
+        self.assertTrue(is_blocked)
+        self.assertEqual(reason, "bot_spam")
+
+        # 5. SQL 注入载荷：拦截
+        inject1 = "Domain' OR '1'='1' --"
+        is_blocked, reason = TextCleaner.is_toxic_or_bot_noise(inject1, other_user, master_users)
+        self.assertTrue(is_blocked)
+        self.assertEqual(reason, "code_injection")
+
 
 if __name__ == "__main__":
     unittest.main()

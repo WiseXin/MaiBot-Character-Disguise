@@ -175,6 +175,60 @@ class TestBeforeSendHook(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(new_raw[0]["type"], "image")
         self.assertEqual(new_raw[1]["data"]["text"], "这个搞笑动图笑死我了")
 
+    async def test_capture_receive_blocks_bot_commands_for_normal_users_but_allows_master(self):
+        """测试入站拦截：群友发机器人指令/报错直接 abort 拦截，主人不受任何限制"""
+        # 1. 普通群友发 /reset 指令 -> 必须被 abort 拦截，不进入后续链路
+        msg_group_user = {
+            "session_id": "test_group_sid_1",
+            "scope": "group",
+            "message_info": {
+                "group_info": {"group_id": "1014708337"},
+                "user_info": {"user_id": "3148952613", "user_nickname": "普通群友"},
+            },
+            "processed_plain_text": "/reset",
+        }
+        res1 = await self.plugin.capture_receive(message=msg_group_user)
+        self.assertEqual(res1.get("action"), "abort", "普通群友发送的机器人指令必须被静默拦截 abort")
+
+        # 2. 主人发 /reset 指令 -> 必须 continue 放行
+        msg_group_master = {
+            "session_id": "test_group_sid_2",
+            "scope": "group",
+            "message_info": {
+                "group_info": {"group_id": "1014708337"},
+                "user_info": {"user_id": "489618891", "user_nickname": "老大"},
+            },
+            "processed_plain_text": "/reset",
+        }
+        res2 = await self.plugin.capture_receive(message=msg_group_master)
+        self.assertEqual(res2.get("action"), "continue", "主人发送的指令绝不受限，必须放行 continue")
+
+        # 3. 普通群友发送 SQL 注入攻击代码 -> 必须被 abort 拦截
+        msg_group_inject = {
+            "session_id": "test_group_sid_3",
+            "scope": "group",
+            "message_info": {
+                "group_info": {"group_id": "1014708337"},
+                "user_info": {"user_id": "1284219057", "user_nickname": "Hacker"},
+            },
+            "processed_plain_text": "Domain' OR '1'='1' --",
+        }
+        res3 = await self.plugin.capture_receive(message=msg_group_inject)
+        self.assertEqual(res3.get("action"), "abort", "群友发送的代码注入攻击必须被 abort 拦截")
+
+    async def test_before_send_aborts_model_safety_errors(self):
+        """测试出站拦截：捕获到模型输出包含 Google 安全策略报错时静默掐死"""
+        error_msg = {
+            "session_id": "test_group_session",
+            "message_id": "msg_err_1",
+            "processed_plain_text": "The prompt could not be submitted. The prompt contains sensitive words that violate Google's Prohibited Use policy.",
+            "raw_message": [
+                {"type": "text", "data": {"text": "The prompt could not be submitted. The prompt contains sensitive words that violate Google's Prohibited Use policy."}}
+            ],
+        }
+        res = await self.plugin.handle_before_send(message=error_msg)
+        self.assertEqual(res.get("action"), "abort", "大模型安全策略报错必须被出站拦截 abort，防止露馅")
+
 
 if __name__ == "__main__":
     unittest.main()
