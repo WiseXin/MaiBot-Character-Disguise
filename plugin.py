@@ -101,6 +101,8 @@ class CharacterDisguisePlugin(MaiBotPlugin):
     # =========================================================================
 
     def _config(self) -> CharacterDisguiseConfig:
+        if hasattr(self, "_test_config") and self._test_config is not None:
+            return self._test_config
         try:
             config = self.config
             if isinstance(config, CharacterDisguiseConfig):

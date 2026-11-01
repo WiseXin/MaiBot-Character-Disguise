@@ -13,12 +13,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import asyncio
 import unittest
+from config import CharacterDisguiseConfig
 from plugin import CharacterDisguisePlugin
 
 
 class TestBeforeSendHook(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.plugin = CharacterDisguisePlugin()
+        self.plugin._test_config = CharacterDisguiseConfig()
         # 模拟插件已载入
         self.plugin._sessions["test_group_session"] = {
             "chat_type": "group",
@@ -176,14 +178,16 @@ class TestBeforeSendHook(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(new_raw[1]["data"]["text"], "这个搞笑动图笑死我了")
 
     async def test_capture_receive_blocks_bot_commands_for_normal_users_but_allows_master(self):
-        """测试入站拦截：群友发机器人指令/报错直接 abort 拦截，主人不受任何限制"""
+        """测试入站拦截：群友发机器人指令/报错直接 abort 拦截，主人不受任何限制，正常交流不误杀"""
+        self.plugin._test_config.rules.master_users = ["10001"]
+
         # 1. 普通群友发 /reset 指令 -> 必须被 abort 拦截，不进入后续链路
         msg_group_user = {
             "session_id": "test_group_sid_1",
             "scope": "group",
             "message_info": {
                 "group_info": {"group_id": "1014708337"},
-                "user_info": {"user_id": "3148952613", "user_nickname": "普通群友"},
+                "user_info": {"user_id": "20002", "user_nickname": "普通群友"},
             },
             "processed_plain_text": "/reset",
         }
@@ -196,14 +200,39 @@ class TestBeforeSendHook(unittest.IsolatedAsyncioTestCase):
             "scope": "group",
             "message_info": {
                 "group_info": {"group_id": "1014708337"},
-                "user_info": {"user_id": "489618891", "user_nickname": "老大"},
+                "user_info": {"user_id": "10001", "user_nickname": "老大"},
             },
             "processed_plain_text": "/reset",
         }
         res2 = await self.plugin.capture_receive(message=msg_group_master)
         self.assertEqual(res2.get("action"), "continue", "主人发送的指令绝不受限，必须放行 continue")
 
-        # 3. 普通群友发送 SQL 注入攻击代码 -> 必须被 abort 拦截
+        # 3. 普通群友发送正常日常交流（中文感叹句、正常英文句子） -> 必须 100% 放行 continue，绝不误杀！
+        msg_normal_exclaim = {
+            "session_id": "test_group_sid_normal_1",
+            "scope": "group",
+            "message_info": {
+                "group_info": {"group_id": "1014708337"},
+                "user_info": {"user_id": "20002", "user_nickname": "普通群友"},
+            },
+            "processed_plain_text": "！这也太离谱了吧",
+        }
+        res_norm1 = await self.plugin.capture_receive(message=msg_normal_exclaim)
+        self.assertEqual(res_norm1.get("action"), "continue", "日常中文感叹句绝不能被误杀")
+
+        msg_normal_en = {
+            "session_id": "test_group_sid_normal_2",
+            "scope": "group",
+            "message_info": {
+                "group_info": {"group_id": "1014708337"},
+                "user_info": {"user_id": "20002", "user_nickname": "普通群友"},
+            },
+            "processed_plain_text": "You can select an option from the menu",
+        }
+        res_norm2 = await self.plugin.capture_receive(message=msg_normal_en)
+        self.assertEqual(res_norm2.get("action"), "continue", "正常英文对话（含 select/from）绝不能被误杀为 SQL 注入")
+
+        # 4. 普通群友发送 SQL 注入攻击代码 -> 必须被 abort 拦截
         msg_group_inject = {
             "session_id": "test_group_sid_3",
             "scope": "group",

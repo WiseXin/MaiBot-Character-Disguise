@@ -97,7 +97,7 @@ class ScopeSection(PluginConfigBase):
         description="指定生效私聊用户 QQ 号列表，留空表示对所有用户生效",
         json_schema_extra={
             "label": "私聊白名单",
-            "placeholder": "例如 [\"489618891\"]，留空为全部私聊生效",
+            "placeholder": "例如 [\"12345678\"]，留空为全部私聊生效",
             "hint": "仅在私聊生效时过滤用户；留空表示对所有私聊好友生效",
         },
     )
@@ -184,11 +184,11 @@ class RulesSection(PluginConfigBase):
         },
     )
     master_users: List[str] = Field(
-        default=["489618891"],
-        description="主人 QQ 列表，此列表内的账号发送任何消息均不予拦截",
+        default_factory=list,
+        description="主人账号白名单列表（支持 QQ 号或用户 ID）。此列表内的账号发送任何消息均不予拦截",
         json_schema_extra={
             "label": "主人账号白名单",
-            "hint": "主人 QQ 列表（默认 489618891），主人的指令和任何发言绝不受限制",
+            "hint": "填入主人 QQ 或平台用户 ID。主人账号发送的指令与消息享有最高豁免权，绝不被拦截",
         },
     )
     filter_group_bot_noise: bool = Field(

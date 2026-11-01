@@ -52,8 +52,12 @@ class TextCleaner:
         re.compile(r"violate[s]? safety guidelines", re.IGNORECASE),
     ]
 
-    # 机器人指令前缀（群友给机器人发指令时使用）
-    BOT_COMMAND_PREFIXES = ("/", "#", "$", "!", "！", "、")
+    # 机器人指令格式匹配：
+    # 1. 标准斜杠/感叹号/美元符号指令：如 /help, /play 晴天, !r 1d100, $price btc, /签到
+    # 要求以 / 或 ! 或 $ 开头，紧跟 1~16 个英文字母/数字/下划线或中文命令词，后跟空白/换行/参数或直接结尾
+    BOT_COMMAND_PATTERN = re.compile(r"^[/!$][a-zA-Z0-9_\u4e00-\u9fa5]{1,16}(?:\s+.*)?$", re.DOTALL)
+    # 2. 跑团骰娘常用点指令：如 .r 1d100, .help, .rd（排除数字小数如 .123 或纯省略号 ...）
+    DOT_COMMAND_PATTERN = re.compile(r"^\.[a-zA-Z]{1,10}(?:\s+.*)?$", re.DOTALL)
 
     # 机器人系统报错、状态打卡与刷屏套话
     BOT_SPAM_PATTERNS = [
@@ -67,13 +71,22 @@ class TextCleaner:
         re.compile(r"Cookie\s*有效\s*\(UID:"),
     ]
 
-    # SQL 注入与代码漏洞攻击载荷
+    # SQL 注入与恶意代码攻击载荷（高危结构特征精确匹配，杜绝正常技术交流与英文句子误杀）
     CODE_INJECTION_PATTERNS = [
-        re.compile(r"'\s*or\s*'1'\s*=\s*'1", re.IGNORECASE),
-        re.compile(r"'\s*or\s*1\s*=\s*1", re.IGNORECASE),
-        re.compile(r"--\s*$", re.MULTILINE),
-        re.compile(r"\bdrop\s+table\b", re.IGNORECASE),
-        re.compile(r"\bselect\s+.*\bfrom\b", re.IGNORECASE),
+        # 恒真条件绕过闭合：' or '1'='1, " or "a"="a, ' or 1=1 --, ' or true --
+        re.compile(r"['\"]\s*or\s*['\"]?\w+['\"]?\s*=\s*['\"]?\w+", re.IGNORECASE),
+        re.compile(r"['\"]\s*or\s*(?:1=1|true)\b", re.IGNORECASE),
+        # 联合查询注入：union select / union all select
+        re.compile(r"\bunion\s+(?:all\s+)?select\b", re.IGNORECASE),
+        # 跨库元数据探测注入：select ... from information_schema
+        re.compile(r"\bselect\b[\s\S]*?\bfrom\s+information_schema\b", re.IGNORECASE),
+        # 分号截断危险语句攻击：; drop table / ; delete from / ; truncate table
+        re.compile(r";\s*(?:drop\s+table|delete\s+from|truncate\s+table)\b", re.IGNORECASE),
+        # SQL 注释闭合注入：'; -- 或 '; #
+        re.compile(r"['\"][^'\"]*;\s*--", re.IGNORECASE),
+        # 跨站脚本攻击载荷：<script>...</script> 或 javascript:
+        re.compile(r"<script[\s>].*?</script>", re.IGNORECASE | re.DOTALL),
+        re.compile(r"javascript:\s*\w+", re.IGNORECASE),
     ]
 
     @classmethod
@@ -123,12 +136,10 @@ class TextCleaner:
 
         s = text.strip()
 
-        # 2. 机器人指令前缀检查
-        # 排除单个标点符号或纯省略号 "..."
-        if s.startswith(cls.BOT_COMMAND_PREFIXES):
-            return True, "bot_command"
-        if s.startswith(".") and len(s) > 1 and not s.startswith("..") and not s[1].isdigit():
-            return True, "bot_command"
+        # 2. 机器人指令格式精准匹配（结构化正则，杜绝纯标点、感叹号、顿号或话题标签误杀）
+        if not s.startswith("//"):
+            if cls.BOT_COMMAND_PATTERN.match(s) or cls.DOT_COMMAND_PATTERN.match(s):
+                return True, "bot_command"
 
         # 3. 机器人系统报错/状态刷屏套话检查
         for pat in cls.BOT_SPAM_PATTERNS:

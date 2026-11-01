@@ -106,25 +106,29 @@ class TestTextCleaner(unittest.TestCase):
         self.assertFalse(TextCleaner.is_model_safety_error(""))
 
     def test_toxic_and_bot_noise_filtering(self):
-        """测试机器人指令、系统报错刷屏与注入过滤（主人豁免）"""
-        master_users = ["489618891"]
-        master_id = "489618891"
-        other_user = "3148952613"
+        """测试机器人指令、系统报错刷屏与注入过滤（主人豁免与防日常误杀）"""
+        master_users = ["10001"]
+        master_id = "10001"
+        other_user = "20002"
 
-        # 1. 主人发送指令：在配置名单中时放行；若用户主动清空名单则尊重新配置
+        # 1. 主人发送指令：在配置名单中时放行；若未配置或清空则不设特殊豁免
         is_blocked, _ = TextCleaner.is_toxic_or_bot_noise("/reset", master_id, master_users)
         self.assertFalse(is_blocked)
         is_blocked, _ = TextCleaner.is_toxic_or_bot_noise("/status", master_id, master_users)
         self.assertFalse(is_blocked)
-        is_blocked, _ = TextCleaner.is_toxic_or_bot_noise("/reset", master_id, [""])
-        self.assertTrue(is_blocked, "若配置名单被清空，则尊重配置不设豁免")
+        is_blocked, _ = TextCleaner.is_toxic_or_bot_noise("/reset", master_id, [])
+        self.assertTrue(is_blocked, "若配置名单为空，则尊重配置不设豁免")
 
         # 2. 群友发送机器人指令：精准拦截
         is_blocked, reason = TextCleaner.is_toxic_or_bot_noise("/reset", other_user, master_users)
         self.assertTrue(is_blocked)
         self.assertEqual(reason, "bot_command")
 
-        is_blocked, reason = TextCleaner.is_toxic_or_bot_noise("#napcat 刷屏", other_user, master_users)
+        is_blocked, reason = TextCleaner.is_toxic_or_bot_noise("/play 稻香", other_user, master_users)
+        self.assertTrue(is_blocked)
+        self.assertEqual(reason, "bot_command")
+
+        is_blocked, reason = TextCleaner.is_toxic_or_bot_noise("!roll 100", other_user, master_users)
         self.assertTrue(is_blocked)
         self.assertEqual(reason, "bot_command")
 
@@ -132,14 +136,29 @@ class TestTextCleaner(unittest.TestCase):
         self.assertTrue(is_blocked)
         self.assertEqual(reason, "bot_command")
 
-        # 3. 群友正常日常聊天带有标点：放行不误杀
-        is_blocked, _ = TextCleaner.is_toxic_or_bot_noise("...无语了", other_user, master_users)
-        self.assertFalse(is_blocked)
-        is_blocked, _ = TextCleaner.is_toxic_or_bot_noise("今天天气真好", other_user, master_users)
-        self.assertFalse(is_blocked)
+        is_blocked, reason = TextCleaner.is_toxic_or_bot_noise("/签到", other_user, master_users)
+        self.assertTrue(is_blocked)
+        self.assertEqual(reason, "bot_command")
+
+        # 3. 关键防误杀验证：群友正常日常水群交流必须 100% 放行！
+        normal_cases = [
+            ("！这也太离谱了吧", "中文全角感叹号开头表达震惊"),
+            ("！卧槽", "短感叹"),
+            ("、我觉得还行吧", "中文顿号开头"),
+            ("#原神 今天抽到纳西妲了吗", "带话题标签的日常讨论"),
+            ("You can select an option from the menu", "正常英文对话（包含 select 与 from）"),
+            ("今天心情不错\n-- 小明", "带署名的换行文本"),
+            ("老师今天讲了如何 drop table", "日常技术课业交流"),
+            ("// 这是一行代码注释", "双斜杠注释文本"),
+            ("...无语了", "省略号开头"),
+            ("今天天气真好", "普通短句"),
+        ]
+        for text, desc in normal_cases:
+            is_blocked, r = TextCleaner.is_toxic_or_bot_noise(text, other_user, master_users)
+            self.assertFalse(is_blocked, f"正常交流内容不应被误杀: '{text}' ({desc}), 误报原因: {r}")
 
         # 4. 机器人系统报错与状态刷屏：拦截
-        spam1 = "您(ID: 3148952613)的权限不足以使用此指令。通过 /sid 获取 ID 并请管理员添加。"
+        spam1 = "您(ID: 20002)的权限不足以使用此指令。通过 /sid 获取 ID 并请管理员添加。"
         is_blocked, reason = TextCleaner.is_toxic_or_bot_noise(spam1, other_user, master_users)
         self.assertTrue(is_blocked)
         self.assertEqual(reason, "bot_spam")
@@ -149,11 +168,18 @@ class TestTextCleaner(unittest.TestCase):
         self.assertTrue(is_blocked)
         self.assertEqual(reason, "bot_spam")
 
-        # 5. SQL 注入载荷：拦截
-        inject1 = "Domain' OR '1'='1' --"
-        is_blocked, reason = TextCleaner.is_toxic_or_bot_noise(inject1, other_user, master_users)
-        self.assertTrue(is_blocked)
-        self.assertEqual(reason, "code_injection")
+        # 5. SQL 注入与恶意代码载荷：精准拦截
+        inject_cases = [
+            "Domain' OR '1'='1' --",
+            "admin' or 1=1 --",
+            "1' union select 1,2,3 --",
+            "1; drop table users;",
+            "<script>alert(1)</script>",
+        ]
+        for inj in inject_cases:
+            is_blocked, reason = TextCleaner.is_toxic_or_bot_noise(inj, other_user, master_users)
+            self.assertTrue(is_blocked, f"恶意攻击载荷必须被拦截: '{inj}'")
+            self.assertEqual(reason, "code_injection")
 
 
 if __name__ == "__main__":

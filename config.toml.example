@@ -26,6 +26,13 @@ strip_markdown = true
 clean_ai_tropes = true
 suppress_know_it_all = true
 allow_silent_reaction = true
+# 主人账号白名单列表（支持填入主人的 QQ 号或用户 ID，如 ["12345678"]）
+# 白名单内的账号发送的任何指令与消息均享有最高豁免权，绝不被拦截
+master_users = []
+# 是否屏蔽群聊中普通群友发送的机器人指令、系统报错刷屏与代码注入攻击
+filter_group_bot_noise = true
+# 是否在出站端拦截大模型上游安全/敏感词拒答报错（如 Google Policy 提示），避免暴露 AI 底座
+block_model_safety_errors = true
 
 [simulation]
 simulate_typing = true
