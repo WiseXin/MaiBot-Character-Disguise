@@ -70,7 +70,10 @@ class CharacterDisguisePlugin(MaiBotPlugin):
 
     @property
     def logger(self):
-        return getattr(self.ctx, "logger", None) or self
+        try:
+            return getattr(self.ctx, "logger", None)
+        except Exception:
+            return None
 
     def debug(self, msg: str, *args):
         if self.logger:
@@ -431,21 +434,28 @@ class CharacterDisguisePlugin(MaiBotPlugin):
 
         is_group = session_info.get("chat_type") == "group"
 
-        # 提取当前待发文本
-        text = str(message.get("processed_plain_text", "") or "")
+        # 提取当前待发文本中的所有 text 组件
         raw_msg = message.get("raw_message")
-        if not text and isinstance(raw_msg, list):
-            texts = [
-                str(part.get("data", {}).get("text", ""))
-                for part in raw_msg
-                if isinstance(part, dict) and part.get("type") == "text"
-            ]
-            text = "".join(texts)
+        has_text_segment = False
+        text_parts = []
+        if isinstance(raw_msg, list):
+            for part in raw_msg:
+                if isinstance(part, dict) and part.get("type") == "text":
+                    has_text_segment = True
+                    text_parts.append(str(part.get("data", {}).get("text", "")))
+        text_from_raw = "".join(text_parts)
 
-        # 1. 沉默潜水检查：若模型输出了空回复或 <silent>，在物理发出前直接 abort
+        plain_text = str(message.get("processed_plain_text", "") or "")
+        text = text_from_raw if has_text_segment else plain_text
+
+        # 核心防护：如果不含任何 text 段且无有效纯文本（纯图片、纯表情、语音、合并转发、戳一戳等），直接放行
+        if not has_text_segment and not text.strip():
+            return {"action": "continue"}
+
+        # 1. 沉默潜水检查：仅在存在文本且包含显式沉默标记时，才在物理发出前 abort
         if cfg.rules.allow_silent_reaction and TextCleaner.is_silent(text):
             self.info(
-                f"[人类伪装计划] 会话 {sid} ({'群聊' if is_group else '私聊'}) 命中沉默潜水意图，取消本次消息发送"
+                f"[人类伪装计划] 会话 {sid} ({'群聊' if is_group else '私聊'}) 命中显式沉默潜水标记，取消本次消息发送"
             )
             return {"action": "abort"}
 

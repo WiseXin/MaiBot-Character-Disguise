@@ -10,6 +10,7 @@ from cleaner import TextCleaner
 
 class TestTextCleaner(unittest.TestCase):
     def test_silence_detection(self):
+        # 显式沉默标记必须为 True
         self.assertTrue(TextCleaner.is_silent("<silent>"))
         self.assertTrue(TextCleaner.is_silent("<silent/>"))
         self.assertTrue(TextCleaner.is_silent("<SILENT>"))
@@ -17,8 +18,10 @@ class TestTextCleaner(unittest.TestCase):
         self.assertTrue(TextCleaner.is_silent("<message></message>"))
         self.assertTrue(TextCleaner.is_silent("[silent]"))
         self.assertTrue(TextCleaner.is_silent("（沉默）"))
-        self.assertTrue(TextCleaner.is_silent(""))
-        self.assertTrue(TextCleaner.is_silent("   "))
+        self.assertTrue(TextCleaner.is_silent("（潜水）"))
+        # 空文本与纯空白绝不能误判为沉默（避免误伤图片等非文本消息）
+        self.assertFalse(TextCleaner.is_silent(""))
+        self.assertFalse(TextCleaner.is_silent("   "))
         self.assertFalse(TextCleaner.is_silent("我在玩生化危机"))
 
     def test_strip_markdown(self):
@@ -69,6 +72,24 @@ class TestTextCleaner(unittest.TestCase):
         self.assertNotIn("**", cleaned)
         self.assertNotIn("希望能帮到你", cleaned)
         self.assertFalse(cleaned.endswith("。"))
+
+    def test_multibubble_preservation(self):
+        """测试多气泡在 clean 后正确保留 <message> 结构以便传递给 before_send"""
+        raw = "<message>第一句好难。</message><message>第二句再试试。</message>"
+        cleaned, bubbles, changed, is_silent = TextCleaner.clean(
+            raw, is_group=True, group_max_chars=30
+        )
+        self.assertFalse(is_silent)
+        self.assertTrue(changed)
+        self.assertEqual(bubbles, ["第一句好难", "第二句再试试"])
+        self.assertEqual(cleaned, "<message>第一句好难</message><message>第二句再试试</message>")
+
+    def test_empty_input_not_silent(self):
+        """测试空输入不误标为沉默"""
+        cleaned, bubbles, changed, is_silent = TextCleaner.clean("", is_group=True)
+        self.assertFalse(is_silent)
+        self.assertEqual(cleaned, "")
+        self.assertEqual(bubbles, [])
 
 
 if __name__ == "__main__":

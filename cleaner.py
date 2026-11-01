@@ -42,10 +42,12 @@ class TextCleaner:
 
     @classmethod
     def is_silent(cls, text: str) -> bool:
-        """判断是否属于沉默/潜水意图（空回复或显式沉默标签）"""
-        if not text or not text.strip():
-            return True
+        """判断是否属于显式沉默/潜水意图（仅命中显式沉默标签才为 True，空文本不误判）"""
+        if not text:
+            return False
         s = text.strip()
+        if not s:
+            return False
         for pattern in cls.SILENT_PATTERNS:
             if pattern.search(s):
                 return True
@@ -154,11 +156,15 @@ class TextCleaner:
         original = raw_text or ""
         trimmed = original.strip()
 
-        # 1. 检查是否沉默
+        # 1. 如果输入本身就是空文本，直接返回，不误标为沉默
+        if not trimmed:
+            return "", [], False, False
+
+        # 2. 检查是否显式沉默
         if allow_silent and cls.is_silent(trimmed):
             return "", [], True, True
 
-        # 2. 检查多气泡
+        # 3. 检查多气泡
         bubbles = cls.extract_bubbles(trimmed)
         is_multi = len(bubbles) > 1
 
@@ -182,6 +188,11 @@ class TextCleaner:
 
         if not cleaned_bubbles:
             return "", [], True, True
+
+        if len(cleaned_bubbles) > 1:
+            # 多气泡场景：保留 <message> 标签传递给 send_service 陆续发送
+            combined_text = "".join(f"<message>{b}</message>" for b in cleaned_bubbles)
+            return combined_text, cleaned_bubbles, True, False
 
         primary_text = cleaned_bubbles[0]
         # 如果不是多气泡，且单条依然超出建议长度过大，做温和修剪
