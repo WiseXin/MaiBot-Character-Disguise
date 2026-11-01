@@ -95,6 +95,22 @@ class TestBeforeSendHook(unittest.IsolatedAsyncioTestCase):
             modified_msg.get("raw_message", [])[0]["data"]["text"], "今天去打生化危机"
         )
 
+    async def test_string_data_part_does_not_crash(self):
+        """测试当 raw_message 中 part['data'] 为字符串时不会 AttributeError"""
+        msg = {
+            "session_id": "test_group_session",
+            "message_id": "msg_str_data_1",
+            "processed_plain_text": "开一把游戏吧。",
+            "raw_message": [
+                {"type": "text", "data": "开一把游戏吧。"}
+            ],
+        }
+        res = await self.plugin.handle_before_send(message=msg)
+        self.assertEqual(res.get("action"), "continue")
+        modified_msg = res.get("modified_kwargs", {}).get("message", {})
+        self.assertEqual(modified_msg.get("processed_plain_text"), "开一把游戏吧")
+
+
 
 if __name__ == "__main__":
     unittest.main()

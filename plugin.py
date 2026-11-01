@@ -442,7 +442,13 @@ class CharacterDisguisePlugin(MaiBotPlugin):
             for part in raw_msg:
                 if isinstance(part, dict) and part.get("type") == "text":
                     has_text_segment = True
-                    text_parts.append(str(part.get("data", {}).get("text", "")))
+                    part_data = part.get("data")
+                    if isinstance(part_data, dict):
+                        text_parts.append(str(part_data.get("text", "")))
+                    elif isinstance(part_data, str):
+                        text_parts.append(part_data)
+                    elif "text" in part:
+                        text_parts.append(str(part.get("text", "")))
         text_from_raw = "".join(text_parts)
 
         plain_text = str(message.get("processed_plain_text", "") or "")
@@ -500,8 +506,15 @@ class CharacterDisguisePlugin(MaiBotPlugin):
                     if isinstance(part, dict) and part.get("type") == "text":
                         if not replaced:
                             new_part = dict(part)
-                            new_part["data"] = dict(part.get("data", {}))
-                            new_part["data"]["text"] = text
+                            part_data = part.get("data")
+                            if isinstance(part_data, dict):
+                                new_data = dict(part_data)
+                                new_data["text"] = text
+                                new_part["data"] = new_data
+                            elif isinstance(part_data, str):
+                                new_part["data"] = text
+                            else:
+                                new_part["data"] = {"text": text}
                             new_raw.append(new_part)
                             replaced = True
                         else:
