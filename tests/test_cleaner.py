@@ -111,11 +111,13 @@ class TestTextCleaner(unittest.TestCase):
         master_id = "489618891"
         other_user = "3148952613"
 
-        # 1. 主人发送指令：绝不拦截
+        # 1. 主人发送指令：绝不拦截（即便传入空列表或含有空字符串也硬保底）
         is_blocked, _ = TextCleaner.is_toxic_or_bot_noise("/reset", master_id, master_users)
         self.assertFalse(is_blocked)
         is_blocked, _ = TextCleaner.is_toxic_or_bot_noise("/status", master_id, master_users)
         self.assertFalse(is_blocked)
+        is_blocked, _ = TextCleaner.is_toxic_or_bot_noise("/reset", master_id, [""])
+        self.assertFalse(is_blocked, "即便配置里存在空字符串，489618891 也必须硬保底放行")
 
         # 2. 群友发送机器人指令：精准拦截
         is_blocked, reason = TextCleaner.is_toxic_or_bot_noise("/reset", other_user, master_users)
