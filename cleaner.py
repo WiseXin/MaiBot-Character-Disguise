@@ -111,10 +111,8 @@ class TextCleaner:
         Returns:
             (is_blocked, reason)
         """
-        # 1. 主人白名单豁免：主人无论发什么都不拦截
-        # 严格清洗空字符串与空白项，且硬保底主人 QQ 489618891 永远在白名单内
+        # 1. 主人白名单豁免：完全遵照用户配置的 master_users
         valid_masters = {str(u).strip() for u in (master_users or []) if u and str(u).strip()}
-        valid_masters.add("489618891")
 
         uid = str(user_id).strip()
         if uid in valid_masters:
