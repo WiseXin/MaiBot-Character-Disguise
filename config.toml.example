@@ -1,0 +1,38 @@
+[plugin]
+name = "character_disguise"
+version = "1.0.0"
+config_version = "1.0.0"
+enabled = true
+
+[scope]
+# 作用域控制：私聊与群聊独立开关
+enable_group = true
+enable_private = true
+# 生效群白名单，空列表 [] 表示对所有群生效；填写具体群号后只对指定群生效
+target_groups = []
+# 忽略群黑名单，在此列表中的群不启用伪装规则
+ignored_groups = []
+# 私聊用户白名单，空列表 [] 表示对所有私聊生效
+target_users = []
+# 私聊用户黑名单
+ignored_users = []
+
+[rules]
+group_max_chars = 30
+private_max_chars = 60
+hard_max_chars = 150
+strip_ending_periods = true
+strip_markdown = true
+clean_ai_tropes = true
+suppress_know_it_all = true
+allow_silent_reaction = true
+
+[simulation]
+simulate_typing = true
+split_bubbles = true
+bubble_delay_min = 0.8
+bubble_delay_max = 1.6
+
+[logging]
+enabled = true
+log_rewrites = true
