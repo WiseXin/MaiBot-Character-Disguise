@@ -84,17 +84,17 @@ class TestBeforeSendHook(unittest.IsolatedAsyncioTestCase):
         msg = {
             "session_id": "test_group_session",
             "message_id": "msg_text_1",
-            "processed_plain_text": "今天去打生化危机。",
+            "processed_plain_text": "今天天气挺不错的。",
             "raw_message": [
-                {"type": "text", "data": {"text": "今天去打生化危机。"}}
+                {"type": "text", "data": {"text": "今天天气挺不错的。"}}
             ],
         }
         res = await self.plugin.handle_before_send(message=msg)
         self.assertEqual(res.get("action"), "continue")
         modified_msg = res.get("modified_kwargs", {}).get("message", {})
-        self.assertEqual(modified_msg.get("processed_plain_text"), "今天去打生化危机")
+        self.assertEqual(modified_msg.get("processed_plain_text"), "今天天气挺不错的")
         self.assertEqual(
-            modified_msg.get("raw_message", [])[0]["data"]["text"], "今天去打生化危机"
+            modified_msg.get("raw_message", [])[0]["data"]["text"], "今天天气挺不错的"
         )
 
     async def test_string_data_part_does_not_crash(self):

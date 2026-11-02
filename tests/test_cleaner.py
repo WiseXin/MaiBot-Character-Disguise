@@ -22,26 +22,26 @@ class TestTextCleaner(unittest.TestCase):
         # 空文本与纯空白绝不能误判为沉默（避免误伤图片等非文本消息）
         self.assertFalse(TextCleaner.is_silent(""))
         self.assertFalse(TextCleaner.is_silent("   "))
-        self.assertFalse(TextCleaner.is_silent("我在玩生化危机"))
+        self.assertFalse(TextCleaner.is_silent("我在看一本有意思的书"))
 
     def test_strip_markdown(self):
-        raw = "**生化危机4**重制版是神作，# 推荐指数：\n- 画面棒\n- 动作流畅"
+        raw = "**这篇旅行游记**写得真棒，# 推荐指数：\n- 景色很美\n- 路线清晰"
         cleaned = TextCleaner.strip_markdown(raw)
         self.assertNotIn("**", cleaned)
         self.assertNotIn("#", cleaned)
         self.assertNotIn("- ", cleaned)
-        self.assertIn("生化危机4重制版是神作", cleaned)
+        self.assertIn("这篇旅行游记写得真棒", cleaned)
 
     def test_clean_ai_tropes(self):
         self.assertEqual(TextCleaner.clean_ai_tropes("好的，这关先去拿钥匙。"), "这关先去拿钥匙。")
         self.assertEqual(TextCleaner.clean_ai_tropes("明白啦！马上就去"), "马上就去")
         self.assertEqual(
-            TextCleaner.clean_ai_tropes("作为一个单机玩家，我觉得挺难的，希望能帮到你！"),
-            "我觉得挺难的",
+            TextCleaner.clean_ai_tropes("作为一个真实群友，我觉得挺不错的，希望能帮到你！"),
+            "我觉得挺不错的",
         )
         self.assertEqual(
-            TextCleaner.clean_ai_tropes("很高兴为你解答，这个 boss 弱火。"),
-            "这个 boss 弱火。",
+            TextCleaner.clean_ai_tropes("很高兴为你解答，这个活动明天截止。"),
+            "这个活动明天截止。",
         )
 
     def test_strip_periods(self):
@@ -51,10 +51,10 @@ class TestTextCleaner(unittest.TestCase):
         self.assertEqual(TextCleaner.strip_periods("今天好累。不想动。"), "今天好累 不想动")
 
     def test_truncate_smart(self):
-        long_text = "生化危机4重制版真的太好玩了，里昂和碍事梨的互动特别有意思，尤其是城堡那段解谜！"
+        long_text = "今天在外面散步天气特别舒服，街角那家新开的咖啡店挺有意思，尤其是窗边的位置！"
         truncated = TextCleaner.truncate_smart(long_text, 25)
         self.assertLessEqual(len(truncated), 25)
-        self.assertTrue(truncated.endswith("特别有意思") or truncated.endswith("好玩了"))
+        self.assertTrue(truncated.endswith("挺有意思") or truncated.endswith("特别舒服"))
 
     def test_extract_bubbles(self):
         raw = "<message>第一句</message><message>第二句</message>"
@@ -62,7 +62,7 @@ class TestTextCleaner(unittest.TestCase):
         self.assertEqual(bubbles, ["第一句", "第二句"])
 
     def test_overall_clean(self):
-        raw = "好的，**生化危机4**重制版真的很好玩。希望能帮到你！"
+        raw = "好的，**这本小说**真的很好看。希望能帮到你！"
         cleaned, bubbles, changed, is_silent = TextCleaner.clean(
             raw, is_group=True, group_max_chars=30
         )
@@ -97,7 +97,7 @@ class TestTextCleaner(unittest.TestCase):
         err2 = "The prompt could not be submitted. The"
         err3 = "Try rephrasing the prompt."
         err4 = "violates safety policy and guidelines"
-        normal = "今天单机游戏真好玩，生化危机通关了"
+        normal = "今天天气真好，出去散步看风景了"
         self.assertTrue(TextCleaner.is_model_safety_error(err1))
         self.assertTrue(TextCleaner.is_model_safety_error(err2))
         self.assertTrue(TextCleaner.is_model_safety_error(err3))
