@@ -18,16 +18,21 @@ class TestPromptBuilder(unittest.TestCase):
     def test_group_prompt(self):
         p = build_group_prompt(25)
         self.assertIn(PROMPT_MARKER, p)
-        self.assertIn("群聊·人类伪装法则", p)
+        self.assertIn("真实社交交互规范", p)
         self.assertIn("25", p)
         self.assertIn("做题家抑制", p)
         self.assertIn("<silent>", p)
+        # 确保彻底解耦，不含任何硬编码特定人设
+        self.assertNotIn("小蓝", p)
+        self.assertNotIn("单机女玩家", p)
 
     def test_private_prompt(self):
         p = build_private_prompt(50)
         self.assertIn(PROMPT_MARKER, p)
-        self.assertIn("私聊·人类伪装法则", p)
+        self.assertIn("日常交流规范", p)
         self.assertIn("50", p)
+        # 确保彻底解耦
+        self.assertNotIn("小蓝", p)
 
     def test_planner_prompt(self):
         p_group = build_planner_prompt(True, 30)

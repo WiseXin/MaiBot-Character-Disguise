@@ -207,6 +207,15 @@ class RulesSection(PluginConfigBase):
             "hint": "当模型因群友话题敏感触发 Google/平台安全策略返回英文报错时，静默拦截不发到聊天中",
         },
     )
+    mute_keywords: List[str] = Field(
+        default_factory=lambda: ["闭嘴", "闭麦", "别叫了", "别吵了", "给爷爬", "快闭嘴", "烦死了"],
+        description="禁言与闭嘴触发词列表。群聊中命中此列表中词汇的消息将被底层直接拦截静默，绝不接嘴",
+        json_schema_extra={
+            "label": "闭嘴禁言词列表",
+            "placeholder": "例如 [\"闭嘴\", \"闭麦\", \"别叫了\", \"别吵了\"]",
+            "hint": "参考 ChatLuna 机制：群友发火或叫闭嘴时，底层直接物理丢弃，防止模型跳出来阴阳怪气",
+        },
+    )
 
 
 class SimulationSection(PluginConfigBase):

@@ -239,6 +239,7 @@ class CharacterDisguisePlugin(MaiBotPlugin):
                         text_content,
                         user_id=user_id,
                         master_users=cfg.rules.master_users,
+                        mute_keywords=getattr(cfg.rules, "mute_keywords", None),
                     )
                     if is_blocked:
                         nickname = str(user_info.get("user_nickname", "") or user_info.get("user_name", "") or "")

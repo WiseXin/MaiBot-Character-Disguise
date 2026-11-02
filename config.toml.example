@@ -33,6 +33,8 @@ master_users = []
 filter_group_bot_noise = true
 # 是否在出站端拦截大模型上游安全/敏感词拒答报错（如 Google Policy 提示），避免暴露 AI 底座
 block_model_safety_errors = true
+# 禁言与闭嘴触发词列表（参考 ChatLuna 机制，群友发火或叫闭嘴时，底层直接拦截静默，绝不接嘴）
+mute_keywords = ["闭嘴", "闭麦", "别叫了", "别吵了", "给爷爬", "快闭嘴", "烦死了"]
 
 [simulation]
 simulate_typing = true

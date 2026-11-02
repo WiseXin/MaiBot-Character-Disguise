@@ -131,8 +131,9 @@ class TextCleaner:
         text: str,
         user_id: str,
         master_users: List[str] | None = None,
+        mute_keywords: List[str] | None = None,
     ) -> Tuple[bool, str]:
-        """检查群消息是否属于群友发送的机器人指令、垃圾刷屏或代码注入
+        """检查群消息是否属于群友发送的机器人指令、垃圾刷屏、代码注入或闭嘴禁言词
 
         Returns:
             (is_blocked, reason)
@@ -164,10 +165,16 @@ class TextCleaner:
             if pat.search(s):
                 return True, "code_injection"
 
-        # 5. 禁言/闭嘴词拦截（对齐 ChatLuna mute_keyword 规范，直接阻断不接嘴）
-        for pat in cls.MUTE_PATTERNS:
-            if pat.search(s):
-                return True, "mute_keyword"
+        # 5. 禁言/闭嘴词拦截（对齐 ChatLuna mute_keyword 规范，优先采用用户配置的词汇列表）
+        if mute_keywords is not None:
+            for kw in mute_keywords:
+                k = str(kw).strip()
+                if k and k in s:
+                    return True, "mute_keyword"
+        else:
+            for pat in cls.MUTE_PATTERNS:
+                if pat.search(s):
+                    return True, "mute_keyword"
 
         return False, ""
 
