@@ -18,6 +18,8 @@
 | **Sentence-ending punctuation** | Stiff and formal period `.` on every single casual line | Natural whitespace, conversational particles, or relaxed casual marks |
 | **Prompt triggers upstream policy error** | Leaks raw English Google Policy violation errors into chat | Silently intercepted and dropped before dispatch, zero AI leak |
 | **Member sends external bot commands (/help)** | Mistakenly treats it as user input and attempts to answer | Silently dropped at inbound layer, avoiding unsolicited know-it-all answers |
+| **Chat mentions AI models or identity challenges** | Frantically defends "I am really a living human" causing drama | Eliminates self-reference; listens to tech chat casually without arguing |
+| **LLM accidentally outputs internal markup** | Chat window displays raw `<message quote="...">` tags | Aggressively stripped and cleaned, guaranteeing pure clean text |
 
 ---
 
@@ -33,42 +35,51 @@
 - **Private chats**: Relaxed conversational replies (suggested 20 ~ 60 characters).
 - **Safety cutoff**: Hard truncation at 150 characters to prevent runaway LLM outputs.
 
-### 3. 💬 Prioritize Quoting Non-Latest Messages (Contextual Continuity)
-- **Say goodbye to disjointed group messages!** In fast-paced group chats, if the target message was already buried under multiple subsequent messages, replying without quoting feels jarring and disconnected.
-- The prompt strongly instructs the model to **prefer quote replies (reply quotes)** when responding to non-latest messages, keeping conversation threads clean and natural just like real people do.
+### 3. 🪞 Eliminate Self-Reference & Identity Defensiveness
+- The harder an AI tries to prove it's human, the more robotic it sounds.
+- Prompts completely remove words like "AI", "robot", "architecture", and "system prompt".
+- Fosters a genuine group member mindset: treats technical talk as other people's gossip and avoids self-justification.
 
-### 4. 🤐 Social Relaxation (Graceful Lurking)
+### 4. 🏷️ XML Pseudo Tag Terminator (Anti-Leak Guard)
+- Strictly forbids the model from outputting XML/HTML tags (such as `<message>` or `quote=`) in reply text.
+- Post-guard `strip_xml_tags` cleanly strips any residual, attributed, or unclosed tags, ensuring 100% clean plaintext output.
+
+### 5. 🫧 Natural Flow (No Forced Over-Quoting)
+- Real people in fast group chats rarely quote every single line.
+- Avoids prompting that pushes quote reply rates toward 100%, letting quotes occur naturally via core probability rules.
+
+### 6. 🤐 Social Relaxation (Graceful Lurking)
 - Real humans do not reply to everything! If a message is hard to follow, awkward, or boring, the bot outputs `<silent>`.
 - The plugin intercepts `<silent>` before transmission and silently discards it, achieving genuine "seen but didn't reply / lurking" behavior.
 
-### 5. 🚫 Suppress Know-It-All Syndrome & Query Triage
+### 7. 🚫 Suppress Know-It-All Syndrome & Query Triage
 - Enforces an unbendable rule: unless explicitly mentioned or directly asked, **never offer unsolicited tutorials or explanations** for random screenshots, memes, or chat math.
 - **Smart Query Triage**:
   - Direct simple questions: short, casual answers without lecturing or step-by-step numbered guides.
   - Provocative test problems, complex exams, or spam: react casually with question marks, say you don't know, or simply output `<silent>` to stay quiet.
 
-### 6. 🤫 Physical Mute & "Shut Up" Guard
+### 8. 🤫 Physical Mute & "Shut Up" Guard
 - In group chats, members may occasionally vent or jokingly tell bots to "shut up" (*"闭嘴"*, *"别叫了"*, *"烦死了"*).
 - Traditional AI tends to defensively argue back, escalating awkwardness.
 - This plugin intercepts matching mute keywords at the inbound layer and drops the message entirely, letting the bot gracefully stay quiet without aggravating anyone.
 
-### 7. 🛡️ Inbound Bot Noise Filtering & Outbound Safety Shield
+### 9. 🛡️ Inbound Bot Noise Filtering & Outbound Safety Shield
 - **Inbound Filter**: Intercepts external CLI bot commands (`/play`, `/help`), third-party bot status spam, and SQL injection payloads from regular members; master accounts (`master_users`) are exempt.
 - **Outbound Safety Shield**: Catches and aborts upstream LLM policy errors (e.g., Google Prohibited Use policy rejections) before sending, preventing AI infrastructure details from leaking into the chat.
 
-### 8. 🧼 Plaintext Cleanliness
+### 10. 🧼 Plaintext Cleanliness
 - Strips markdown formatting (`**`, `#`, `- `, code blocks).
 - Cleans typical AI clichés (*"Certainly"*, *"Hope this helps"*, *"As an AI..."*).
 - Prevents repetitive catchphrases and forced memes.
 
-### 9. 🫧 Multi-Bubble Sequential Dispatch
+### 11. 💬 Multi-Bubble Sequential Dispatch
 - Recognizes `<message>` tags or multi-part thoughts, sending them as sequential bubbles with natural slight delays.
 
-### 10. 🎭 Fully Decoupled Character Identity
+### 12. 🎭 Fully Decoupled Character Identity
 - All behavioral guidelines focus strictly on universal human typing and chatting etiquette, without hardcoded character names or traits.
 - Seamlessly fits any custom persona you define in MaiBot (tsundere girl, calm detective, cheerful companion, etc.).
 
-### 11. 🎛️ Dual-Scope Independent Control
+### 13. 🎛️ Dual-Scope Independent Control
 - Group chat disguise and private chat humanization can be toggled independently.
 - Supports group and user whitelists and blacklists.
 - Full WebUI visual card support with instant hot-reload (no restart required).
@@ -80,8 +91,8 @@
 ```toml
 [plugin]
 name = "character_disguise"
-version = "1.0.1"
-config_version = "1.0.1"
+version = "1.0.2"
+config_version = "1.0.2"
 enabled = true
 
 [scope]
@@ -138,7 +149,8 @@ log_rewrites = true
 [Line 1: Humanlike Prompt Injection]
   ├─ Enforce concise brevity constraints (10~30 chars in group)
   ├─ Forbid trailing periods and markdown formatting
-  ├─ Prioritize quoting buried/non-latest messages
+  ├─ Strictly forbid outputting XML/HTML tags in reply text
+  ├─ Eliminate self-reference (treat tech/model topics as external talk)
   ├─ Suppress know-it-all impulses (react casually, dodge exams)
   └─ Grant lurking permission (allow outputting <silent>)
         │
@@ -147,6 +159,7 @@ log_rewrites = true
         │
         ▼
 [Line 2: Replyer Hard Guardrails]
+  ├─ Aggressively strip XML pseudo tags (<message>, <quote>, etc.)
   ├─ Strip trailing periods (。 and .)
   ├─ Remove bold (**), headers (#), lists
   ├─ Clean customer-service clichés
