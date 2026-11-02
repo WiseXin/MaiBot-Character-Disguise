@@ -181,6 +181,19 @@ class TestTextCleaner(unittest.TestCase):
             self.assertTrue(is_blocked, f"恶意攻击载荷必须被拦截: '{inj}'")
             self.assertEqual(reason, "code_injection")
 
+        # 6. 禁言/闭嘴词拦截：精准拦截（对齐 ChatLuna mute_keyword 规范）
+        mute_cases = [
+            "@小蓝 你妈的闭嘴",
+            "人机全部闭嘴",
+            "闭麦吧你",
+            "别叫了烦死了",
+            "快闭嘴行不行",
+        ]
+        for mute_text in mute_cases:
+            is_blocked, reason = TextCleaner.is_toxic_or_bot_noise(mute_text, other_user, master_users)
+            self.assertTrue(is_blocked, f"闭嘴禁言词必须被拦截: '{mute_text}'")
+            self.assertEqual(reason, "mute_keyword")
+
 
 if __name__ == "__main__":
     unittest.main()

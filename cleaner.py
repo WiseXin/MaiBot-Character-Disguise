@@ -71,6 +71,19 @@ class TextCleaner:
         re.compile(r"Cookie\s*有效\s*\(UID:"),
     ]
 
+    # 禁言/闭嘴词拦截（对齐 ChatLuna mute_keyword 机制：群友发火或叫闭嘴时，底层物理拦截静默，绝不接嘴）
+    MUTE_PATTERNS = [
+        re.compile(r"闭嘴", re.IGNORECASE),
+        re.compile(r"闭麦", re.IGNORECASE),
+        re.compile(r"别叫了", re.IGNORECASE),
+        re.compile(r"别吵了", re.IGNORECASE),
+        re.compile(r"快闭嘴", re.IGNORECASE),
+        re.compile(r"给爷爬", re.IGNORECASE),
+        re.compile(r"安静点", re.IGNORECASE),
+        re.compile(r"烦死了", re.IGNORECASE),
+        re.compile(r"闭嘴吧", re.IGNORECASE),
+    ]
+
     # SQL 注入与恶意代码攻击载荷（高危结构特征精确匹配，杜绝正常技术交流与英文句子误杀）
     CODE_INJECTION_PATTERNS = [
         # 恒真条件绕过闭合：' or '1'='1, " or "a"="a, ' or 1=1 --, ' or true --
@@ -150,6 +163,11 @@ class TextCleaner:
         for pat in cls.CODE_INJECTION_PATTERNS:
             if pat.search(s):
                 return True, "code_injection"
+
+        # 5. 禁言/闭嘴词拦截（对齐 ChatLuna mute_keyword 规范，直接阻断不接嘴）
+        for pat in cls.MUTE_PATTERNS:
+            if pat.search(s):
+                return True, "mute_keyword"
 
         return False, ""
 
