@@ -71,7 +71,7 @@ class TextCleaner:
         re.compile(r"Cookie\s*有效\s*\(UID:"),
     ]
 
-    # 禁言/闭嘴词拦截（对齐 ChatLuna mute_keyword 机制：群友发火或叫闭嘴时，底层物理拦截静默，绝不接嘴）
+    # 禁言/闭嘴词拦截（物理静默机制：群友发火或叫闭嘴时，底层物理拦截静默，绝不接嘴）
     MUTE_PATTERNS = [
         re.compile(r"闭嘴", re.IGNORECASE),
         re.compile(r"闭麦", re.IGNORECASE),
@@ -165,7 +165,7 @@ class TextCleaner:
             if pat.search(s):
                 return True, "code_injection"
 
-        # 5. 禁言/闭嘴词拦截（对齐 ChatLuna mute_keyword 规范，优先采用用户配置的词汇列表）
+        # 5. 禁言/闭嘴词拦截（通用物理静默规范，优先采用用户配置的词汇列表）
         if mute_keywords is not None:
             for kw in mute_keywords:
                 k = str(kw).strip()

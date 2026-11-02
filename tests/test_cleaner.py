@@ -181,7 +181,7 @@ class TestTextCleaner(unittest.TestCase):
             self.assertTrue(is_blocked, f"恶意攻击载荷必须被拦截: '{inj}'")
             self.assertEqual(reason, "code_injection")
 
-        # 6. 禁言/闭嘴词拦截：精准拦截（对齐 ChatLuna mute_keyword 规范）
+        # 6. 禁言/闭嘴词拦截：精准拦截（物理静默机制）
         mute_cases = [
             "@小蓝 你妈的闭嘴",
             "人机全部闭嘴",

@@ -213,7 +213,7 @@ class RulesSection(PluginConfigBase):
         json_schema_extra={
             "label": "闭嘴禁言词列表",
             "placeholder": "例如 [\"闭嘴\", \"闭麦\", \"别叫了\", \"别吵了\"]",
-            "hint": "参考 ChatLuna 机制：群友发火或叫闭嘴时，底层直接物理丢弃，防止模型跳出来阴阳怪气",
+            "hint": "物理静默机制：群友发火或叫闭嘴时，底层直接丢弃消息，防止模型跳出来阴阳怪气",
         },
     )
 
