@@ -6,14 +6,18 @@
 
 ---
 
-## 💥 Common AI Chatting Blunders
+## 💥 Traditional AI Bot vs. Character Disguise
 
-- 📉 **The Know-It-All Reflex**: A group member shares a game screenshot or casual complaint, and the bot immediately outputs a 300-word academic analysis and walkthrough... killing the room instantly.
-- 📏 **Period Obsession**: Every single casual message ends with a strict period `.` or `。`, looking like a formal corporate report.
-- 🤖 **Eager Service Drone**: People are bantering or joking, yet the bot responds: *"Certainly! I am happy to assist you..."*
-- 📜 **Essay Bombing**: Someone typed three words, but the bot returns paragraphs of bold markdown `**`, numbered lists, and headers.
-
-**MaiBot Character Disguise** solves these issues across three solid defensive lines: **Prompt Engineering**, **Replyer Output Guard**, and **SendService Interception**.
+| Realistic Chat Scenario | Traditional AI Bot 🤖 | With Character Disguise 🎭 |
+| :--- | :--- | :--- |
+| **Random game screenshot or casual complaint** | Dumps a 300-word tutorial & walkthrough (kills the room instantly) | "Ugh, this stage was awful, took me half an hour too" (natural relatable banter) |
+| **Someone types 3-5 words** | Returns an essay with bold markdown headers and numbered lists | Replies in 10-20 words, casual and fast just like mobile texting |
+| **Replying to a buried message** | Drops a disjointed reply with zero context, confusing everyone | Automatically quotes the original message, keeping thread context clear |
+| **Group member vents or says "shut up"** | Argues back defensively: *"Sorry, as an AI..."* creating drama | Hits physical mute filter and drops message immediately without arguing |
+| **Complex exam question or provocative test** | Tries to solve everything eagerly, often hallucinating | Sends a question mark, says "no idea", or outputs `<silent>` to lurk |
+| **Sentence-ending punctuation** | Stiff and formal period `.` on every single casual line | Natural whitespace, conversational particles, or relaxed casual marks |
+| **Prompt triggers upstream policy error** | Leaks raw English Google Policy violation errors into chat | Silently intercepted and dropped before dispatch, zero AI leak |
+| **Member sends external bot commands (/help)** | Mistakenly treats it as user input and attempts to answer | Silently dropped at inbound layer, avoiding unsolicited know-it-all answers |
 
 ---
 
