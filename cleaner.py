@@ -250,15 +250,34 @@ class TextCleaner:
         return truncated
 
     @classmethod
+    def strip_xml_tags(cls, text: str) -> str:
+        """剥离残留的 XML/HTML 伪标签（如 <message>, </message>, <message quote="..."> 等），避免裸露发到聊天中"""
+        t = text
+        # 剥离任何以 message, quote, output, thought, think, action 等开头的标签或结束标签
+        t = re.sub(
+            r"<\s*/?\s*(?:message|quote|output|thought|think|action)(?:\s+[^>]*)?>",
+            "",
+            t,
+            flags=re.IGNORECASE,
+        )
+        return t.strip()
+
+    @classmethod
     def extract_bubbles(cls, text: str) -> List[str]:
-        """提取多气泡消息：若包含 <message> 标签则提取，否则返回单条"""
-        msg_pattern = re.compile(r"<\s*message\s*>(.*?)<\s*/\s*message\s*>", re.DOTALL | re.IGNORECASE)
+        """提取多气泡消息：兼容标准 <message>、带属性的 <message quote="..."> 以及未闭合标签"""
+        # 1. 优先提取成对的 <message ...>内容</message>
+        msg_pattern = re.compile(
+            r"<\s*message(?:\s+[^>]*)?>(.*?)<\s*/\s*message\s*>", re.DOTALL | re.IGNORECASE
+        )
         matches = msg_pattern.findall(text)
         if matches:
-            bubbles = [m.strip() for m in matches if m.strip()]
+            bubbles = [cls.strip_xml_tags(m).strip() for m in matches if cls.strip_xml_tags(m).strip()]
             if bubbles:
                 return bubbles
-        return [text.strip()] if text.strip() else []
+
+        # 2. 如果包含孤立的 <message ...> 标签（例如未闭合的 <message quote="xxx">内容），先剥离标签
+        cleaned_text = cls.strip_xml_tags(text).strip()
+        return [cleaned_text] if cleaned_text else []
 
     @classmethod
     def clean(
@@ -297,7 +316,7 @@ class TextCleaner:
         target_max = group_max_chars if is_group else private_max_chars
 
         for bubble in (bubbles if is_multi else [trimmed]):
-            b = bubble
+            b = cls.strip_xml_tags(bubble)
             if strip_markdown:
                 b = cls.strip_markdown(b)
             if clean_ai_tropes:

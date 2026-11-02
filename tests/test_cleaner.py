@@ -61,6 +61,23 @@ class TestTextCleaner(unittest.TestCase):
         bubbles = TextCleaner.extract_bubbles(raw)
         self.assertEqual(bubbles, ["第一句", "第二句"])
 
+        # 测试带属性的多气泡提取与标签剥除
+        raw_with_attr = '<message quote="12345">第一句</message><message quote="67890">第二句</message>'
+        bubbles_attr = TextCleaner.extract_bubbles(raw_with_attr)
+        self.assertEqual(bubbles_attr, ["第一句", "第二句"])
+
+        # 测试未闭合标签被彻底净化
+        raw_unclosed = '<message quote="847671649">刚关了游戏'
+        bubbles_unclosed = TextCleaner.extract_bubbles(raw_unclosed)
+        self.assertEqual(bubbles_unclosed, ["刚关了游戏"])
+
+    def test_strip_xml_tags(self):
+        """测试彻底剥离各种残留 XML 伪标签"""
+        self.assertEqual(TextCleaner.strip_xml_tags('<message quote="847671649">刚关了游戏'), "刚关了游戏")
+        self.assertEqual(TextCleaner.strip_xml_tags('<message>纯文本</message>'), "纯文本")
+        self.assertEqual(TextCleaner.strip_xml_tags('<output><message>内容</message></output>'), "内容")
+        self.assertEqual(TextCleaner.strip_xml_tags('<quote id="123"/>测试'), "测试")
+
     def test_overall_clean(self):
         raw = "好的，**这本小说**真的很好看。希望能帮到你！"
         cleaned, bubbles, changed, is_silent = TextCleaner.clean(
