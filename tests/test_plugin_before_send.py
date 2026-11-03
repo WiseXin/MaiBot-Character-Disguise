@@ -178,34 +178,46 @@ class TestBeforeSendHook(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(new_raw[1]["data"]["text"], "这个搞笑动图笑死我了")
 
     async def test_capture_receive_blocks_bot_commands_for_normal_users_but_allows_master(self):
-        """测试入站拦截：群友发机器人指令/报错直接 abort 拦截，主人不受任何限制，正常交流不误杀"""
+        """测试入站拦截：插件指令必须放行供其他插件处理，恶意注入与机器人报错刷屏依然拦截"""
         self.plugin._test_config.rules.master_users = ["10001"]
 
-        # 1. 普通群友发 /reset 指令 -> 必须被 abort 拦截，不进入后续链路
-        msg_group_user = {
+        # 1. 普通群友发 /dr 或 /help 等插件指令 -> 必须 continue 放行，绝不阻断其他插件！
+        msg_group_cmd1 = {
             "session_id": "test_group_sid_1",
             "scope": "group",
             "message_info": {
                 "group_info": {"group_id": "1014708337"},
                 "user_info": {"user_id": "20002", "user_nickname": "普通群友"},
             },
-            "processed_plain_text": "/reset",
+            "processed_plain_text": "/dr 画一只可爱的柴犬",
         }
-        res1 = await self.plugin.capture_receive(message=msg_group_user)
-        self.assertEqual(res1.get("action"), "abort", "普通群友发送的机器人指令必须被静默拦截 abort")
+        res1 = await self.plugin.capture_receive(message=msg_group_cmd1)
+        self.assertEqual(res1.get("action"), "continue", "普通群友发送的绘图指令 /dr 必须放行给绘图插件")
 
-        # 2. 主人发 /reset 指令 -> 必须 continue 放行
-        msg_group_master = {
-            "session_id": "test_group_sid_2",
+        msg_group_cmd2 = {
+            "session_id": "test_group_sid_1",
             "scope": "group",
             "message_info": {
                 "group_info": {"group_id": "1014708337"},
-                "user_info": {"user_id": "10001", "user_nickname": "老大"},
+                "user_info": {"user_id": "20002", "user_nickname": "普通群友"},
             },
-            "processed_plain_text": "/reset",
+            "processed_plain_text": "/help",
         }
-        res2 = await self.plugin.capture_receive(message=msg_group_master)
-        self.assertEqual(res2.get("action"), "continue", "主人发送的指令绝不受限，必须放行 continue")
+        res2 = await self.plugin.capture_receive(message=msg_group_cmd2)
+        self.assertEqual(res2.get("action"), "continue", "普通群友发送的 /help 必须放行给帮助插件")
+
+        # 2. 普通群友发送第三方机器人报错刷屏套话 -> 必须 abort 拦截
+        msg_group_spam = {
+            "session_id": "test_group_sid_spam",
+            "scope": "group",
+            "message_info": {
+                "group_info": {"group_id": "1014708337"},
+                "user_info": {"user_id": "20002", "user_nickname": "普通群友"},
+            },
+            "processed_plain_text": "您(ID: 20002)的权限不足以使用此指令。通过 /sid 获取 ID 并请管理员添加。",
+        }
+        res_spam = await self.plugin.capture_receive(message=msg_group_spam)
+        self.assertEqual(res_spam.get("action"), "abort", "第三方机器人报错刷屏必须被 abort 拦截")
 
         # 3. 普通群友发送正常日常交流（中文感叹句、正常英文句子） -> 必须 100% 放行 continue，绝不误杀！
         msg_normal_exclaim = {

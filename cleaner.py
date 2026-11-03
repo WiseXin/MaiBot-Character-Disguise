@@ -150,22 +150,17 @@ class TextCleaner:
 
         s = text.strip()
 
-        # 2. 机器人指令格式精准匹配（结构化正则，杜绝纯标点、感叹号、顿号或话题标签误杀）
-        if not s.startswith("//"):
-            if cls.BOT_COMMAND_PATTERN.match(s) or cls.DOT_COMMAND_PATTERN.match(s):
-                return True, "bot_command"
-
-        # 3. 机器人系统报错/状态刷屏套话检查
+        # 2. 机器人系统报错/状态刷屏套话检查（拦截第三方 bot 的错误刷屏，不影响正常前缀指令）
         for pat in cls.BOT_SPAM_PATTERNS:
             if pat.search(s):
                 return True, "bot_spam"
 
-        # 4. 代码注入攻击与恶意载荷检查
+        # 3. 代码注入攻击与恶意载荷检查
         for pat in cls.CODE_INJECTION_PATTERNS:
             if pat.search(s):
                 return True, "code_injection"
 
-        # 5. 禁言/闭嘴词拦截（通用物理静默规范，优先采用用户配置的词汇列表）
+        # 4. 禁言/闭嘴词拦截（通用物理静默规范，优先采用用户配置的词汇列表）
         if mute_keywords is not None:
             for kw in mute_keywords:
                 k = str(kw).strip()

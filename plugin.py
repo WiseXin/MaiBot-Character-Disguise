@@ -244,7 +244,7 @@ class CharacterDisguisePlugin(MaiBotPlugin):
                     if is_blocked:
                         nickname = str(user_info.get("user_nickname", "") or user_info.get("user_name", "") or "")
                         self.info(
-                            f"[人类伪装计划] 🛡️ 静默拦截群友({user_id}|{nickname})的指令/机器人垃圾消息: "
+                            f"[人类伪装计划] 🛡️ 静默拦截群友({user_id}|{nickname})的垃圾刷屏/恶意注入消息: "
                             f"'{text_content[:60]}' (原因: {reason})，不予入库与送入模型"
                         )
                         return {"action": "abort"}

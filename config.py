@@ -193,10 +193,10 @@ class RulesSection(PluginConfigBase):
     )
     filter_group_bot_noise: bool = Field(
         default=True,
-        description="是否屏蔽群聊中普通群友发送的机器人指令、系统报错刷屏与代码注入",
+        description="是否屏蔽群聊中第三方机器人系统报错刷屏与恶意代码注入（绝不拦截正常插件指令）",
         json_schema_extra={
-            "label": "过滤群友机器人垃圾消息",
-            "hint": "开启后，群友发送的 /指令、机器人系统报错刷屏、SQL注入代码将被直接屏蔽不进模型，主人不受影响",
+            "label": "过滤机器人刷屏与恶意注入",
+            "hint": "开启后，群内第三方机器人的系统报错刷屏、SQL注入代码将被直接屏蔽不进模型；正常插件指令（如 /dr、/help 等）不受任何影响，安全放行",
         },
     )
     block_model_safety_errors: bool = Field(

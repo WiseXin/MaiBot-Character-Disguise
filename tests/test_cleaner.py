@@ -128,34 +128,20 @@ class TestTextCleaner(unittest.TestCase):
         master_id = "10001"
         other_user = "20002"
 
-        # 1. 主人发送指令：在配置名单中时放行；若未配置或清空则不设特殊豁免
-        is_blocked, _ = TextCleaner.is_toxic_or_bot_noise("/reset", master_id, master_users)
-        self.assertFalse(is_blocked)
-        is_blocked, _ = TextCleaner.is_toxic_or_bot_noise("/status", master_id, master_users)
-        self.assertFalse(is_blocked)
-        is_blocked, _ = TextCleaner.is_toxic_or_bot_noise("/reset", master_id, [])
-        self.assertTrue(is_blocked, "若配置名单为空，则尊重配置不设豁免")
-
-        # 2. 群友发送机器人指令：精准拦截
-        is_blocked, reason = TextCleaner.is_toxic_or_bot_noise("/reset", other_user, master_users)
-        self.assertTrue(is_blocked)
-        self.assertEqual(reason, "bot_command")
-
-        is_blocked, reason = TextCleaner.is_toxic_or_bot_noise("/play 稻香", other_user, master_users)
-        self.assertTrue(is_blocked)
-        self.assertEqual(reason, "bot_command")
-
-        is_blocked, reason = TextCleaner.is_toxic_or_bot_noise("!roll 100", other_user, master_users)
-        self.assertTrue(is_blocked)
-        self.assertEqual(reason, "bot_command")
-
-        is_blocked, reason = TextCleaner.is_toxic_or_bot_noise(".help", other_user, master_users)
-        self.assertTrue(is_blocked)
-        self.assertEqual(reason, "bot_command")
-
-        is_blocked, reason = TextCleaner.is_toxic_or_bot_noise("/签到", other_user, master_users)
-        self.assertTrue(is_blocked)
-        self.assertEqual(reason, "bot_command")
+        # 1. 核心放行验证：群友发送的前缀插件指令（如 /dr、/help、/play、/签到、!roll、.help）绝不拦截！
+        plugin_commands = [
+            "/dr 画一只猫",
+            "/help",
+            "/play 稻香",
+            "!roll 100",
+            ".help",
+            "/签到",
+            "/status",
+            "/reset",
+        ]
+        for cmd in plugin_commands:
+            is_blocked, reason = TextCleaner.is_toxic_or_bot_noise(cmd, other_user, master_users)
+            self.assertFalse(is_blocked, f"插件指令绝不拦截，必须放行以供其他插件处理: '{cmd}', 误拦截原因: {reason}")
 
         # 3. 关键防误杀验证：群友正常日常水群交流必须 100% 放行！
         normal_cases = [
