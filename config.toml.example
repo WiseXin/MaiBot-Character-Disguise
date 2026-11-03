@@ -1,7 +1,7 @@
 [plugin]
 name = "character_disguise"
-version = "1.0.2"
-config_version = "1.0.2"
+version = "1.0.3"
+config_version = "1.0.3"
 enabled = true
 
 [scope]
@@ -29,7 +29,7 @@ allow_silent_reaction = true
 # 主人账号白名单列表（支持填入主人的 QQ 号或用户 ID，如 ["12345678"]）
 # 白名单内的账号发送的任何指令与消息均享有最高豁免权，绝不被拦截
 master_users = []
-# 是否屏蔽群聊中普通群友发送的机器人指令、系统报错刷屏与代码注入攻击
+# 是否屏蔽群聊中第三方机器人系统报错刷屏与恶意代码注入（绝不拦截正常插件指令）
 filter_group_bot_noise = true
 # 是否在出站端拦截大模型上游安全/敏感词拒答报错（如 Google Policy 提示），避免暴露 AI 底座
 block_model_safety_errors = true

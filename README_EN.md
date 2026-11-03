@@ -17,7 +17,8 @@
 | **Complex exam question or provocative test** | Tries to solve everything eagerly, often hallucinating | Sends a question mark, says "no idea", or outputs `<silent>` to lurk |
 | **Sentence-ending punctuation** | Stiff and formal period `.` on every single casual line | Natural whitespace, conversational particles, or relaxed casual marks |
 | **Prompt triggers upstream policy error** | Leaks raw English Google Policy violation errors into chat | Silently intercepted and dropped before dispatch, zero AI leak |
-| **Member sends external bot commands (/help)** | Mistakenly treats it as user input and attempts to answer | Silently dropped at inbound layer, avoiding unsolicited know-it-all answers |
+| **Plugin commands (/dr, /help, etc.)** | Commands blocked or intercepted by mistake | Seamlessly passes all plugin commands through, ensuring multi-plugin harmony |
+| **Third-party bot error spam** | Echoes errors or pollutes conversation context | Inbound layer intercepts error spam ("permission denied", etc.) cleanly |
 | **Chat mentions AI models or identity challenges** | Frantically defends "I am really a living human" causing drama | Eliminates self-reference; listens to tech chat casually without arguing |
 | **LLM accidentally outputs internal markup** | Chat window displays raw `<message quote="...">` tags | Aggressively stripped and cleaned, guaranteeing pure clean text |
 
@@ -63,8 +64,9 @@
 - Traditional AI tends to defensively argue back, escalating awkwardness.
 - This plugin intercepts matching mute keywords at the inbound layer and drops the message entirely, letting the bot gracefully stay quiet without aggravating anyone.
 
-### 9. 🛡️ Inbound Bot Noise Filtering & Outbound Safety Shield
-- **Inbound Filter**: Intercepts external CLI bot commands (`/play`, `/help`), third-party bot status spam, and SQL injection payloads from regular members; master accounts (`master_users`) are exempt.
+### 9. 🛡️ Bot Noise Filtering, Outbound Shield & Multi-Plugin Harmony
+- **Multi-Plugin Seamless Compatibility**: All valid command prefixes (`/dr`, `/help`, `/play`, `/xhh`, etc.) are passed through untouched, allowing MaiBot's plugin command pipeline to operate smoothly without interference.
+- **Inbound Filter**: Intercepts third-party bot status error spam (*"permission denied to use this command"*, etc.) and malicious SQL injection/XSS payloads from regular members; master accounts (`master_users`) are exempt.
 - **Outbound Safety Shield**: Catches and aborts upstream LLM policy errors (e.g., Google Prohibited Use policy rejections) before sending, preventing AI infrastructure details from leaking into the chat.
 
 ### 10. 🧼 Plaintext Cleanliness
@@ -91,8 +93,8 @@
 ```toml
 [plugin]
 name = "character_disguise"
-version = "1.0.2"
-config_version = "1.0.2"
+version = "1.0.3"
+config_version = "1.0.3"
 enabled = true
 
 [scope]
@@ -114,7 +116,7 @@ suppress_know_it_all = true
 allow_silent_reaction = true
 # Whitelist of master accounts (exempt from all command / noise filters)
 master_users = []
-# Filter out external bot commands, spam, and injection attempts from regular members
+# Filter out third-party bot status spam and injection attempts (never intercepts valid plugin commands)
 filter_group_bot_noise = true
 # Intercept upstream LLM safety/policy errors before sending to chat
 block_model_safety_errors = true
@@ -140,7 +142,7 @@ log_rewrites = true
 [Inbound Group/Private Message]
         │
         ├─►【Frontline Guard: Inbound Filtering (chat.receive)】
-        │     ├─ External CLI bot commands (/play, /help) ──► Silently abort
+        │     ├─ Valid plugin commands (/dr, /help, /play) ──► 100% passthrough to target plugins!
         │     ├─ Third-party bot status spam / errors ──────► Silently abort
         │     ├─ Physical mute keywords ("闭嘴", "烦死了") ───► Silently abort
         │     └─ Malicious SQL injection payloads ───────────► Silently abort

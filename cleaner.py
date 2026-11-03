@@ -52,14 +52,7 @@ class TextCleaner:
         re.compile(r"violate[s]? safety guidelines", re.IGNORECASE),
     ]
 
-    # 机器人指令格式匹配：
-    # 1. 标准斜杠/感叹号/美元符号指令：如 /help, /play 晴天, !r 1d100, $price btc, /签到
-    # 要求以 / 或 ! 或 $ 开头，紧跟 1~16 个英文字母/数字/下划线或中文命令词，后跟空白/换行/参数或直接结尾
-    BOT_COMMAND_PATTERN = re.compile(r"^[/!$][a-zA-Z0-9_\u4e00-\u9fa5]{1,16}(?:\s+.*)?$", re.DOTALL)
-    # 2. 跑团骰娘常用点指令：如 .r 1d100, .help, .rd（排除数字小数如 .123 或纯省略号 ...）
-    DOT_COMMAND_PATTERN = re.compile(r"^\.[a-zA-Z]{1,10}(?:\s+.*)?$", re.DOTALL)
-
-    # 机器人系统报错、状态打卡与刷屏套话
+    # 机器人系统报错、状态打卡与刷屏套话（拦截第三方 bot 的错误刷屏，不影响正常前缀指令）
     BOT_SPAM_PATTERNS = [
         re.compile(r"权限不足以使用此指令"),
         re.compile(r"管理命令仅管理员可用"),
